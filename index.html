@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stripe</title>
+</head>
+<body>
+
+
+<script src="https://checkout.stripe.com/checkout.js"></script>
+
+<h1>Stripe Demo</h1>
+
+<button id="customButton">Purchase</button>
+<button id="accept">Accept</button>
+<button id="decline">Decline</button>
+
+<script>
+
+    var order = '';
+    var tokenObject = '';
+
+    var handler = StripeCheckout.configure({
+        key: 'pk_test_Q0H9XgWLqmqFhAiwL0MXWgBV',
+        image: 'https://stripe.com/img/documentation/checkout/marketplace.png',
+        locale: 'auto',
+        token: function(token) {
+
+            console.log(token);
+            tokenObject = token;
+
+            var xhr = new XMLHttpRequest();
+            var url = "http://api.stripe.g6nutrition.com/stripe/order";
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var json = JSON.parse(xhr.responseText);
+
+                    console.log(json);
+
+                    order = json['data'][0].id;
+
+                    alert('ORDER ' + order + ' RECEIVED.');
+
+                    console.log(order);
+                }
+            };
+
+            var orderData = {
+                "items": [
+                    {
+                        "type": "sku",
+                        "parent": "sku_De1qB9XDvzA8mY",
+                        "quantity": 1
+                    }
+                ],
+                "shipping": {
+                    "name": "Harry Kane",
+                    "address":
+                        {
+                            "line1": "2640 Steiner St",
+                            "city": "San Francisco",
+                            "postal_code": "94115",
+                            "country": "USA"
+                        }
+                }
+
+            };
+
+
+
+            var data = JSON.stringify({
+                    "token": token,
+                    "order": orderData // new
+            });
+
+            console.log(orderData);
+            xhr.send(data);
+
+        }
+    });
+
+    document.getElementById('customButton').addEventListener('click', function(e) {
+        // Open Checkout with further options:
+        handler.open({
+            name: 'Diamond App Group LLC',
+            description: '2 widgets',
+            amount: 100
+        });
+        e.preventDefault();
+    });
+
+
+    // pay order
+    document.getElementById('accept').addEventListener('click', function(e) {
+
+        if(order.length !== 0){
+
+            var xhr = new XMLHttpRequest();
+            var url = "http://api.stripe.g6nutrition.com/stripe/pay";
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var json = JSON.parse(xhr.responseText);
+                    console.log(json);
+
+                    alert('ORDER ' + order + ' ACCEPTED.');
+                }
+            };
+            var data = JSON.stringify({"token": tokenObject, "order": order});
+            xhr.send(data);
+        }
+
+
+    });
+
+
+    // pay order
+    document.getElementById('decline').addEventListener('click', function(e) {
+
+        if(order.length !== 0){
+
+            var xhr = new XMLHttpRequest();
+            var url = "http://api.stripe.g6nutrition.com/stripe/decline";
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var json = JSON.parse(xhr.responseText);
+                    console.log(json);
+
+                    alert('ORDER ' + order + ' CANCELED.');
+                }
+            };
+            var data = JSON.stringify({"order": order});
+            xhr.send(data);
+        }
+
+
+    });
+
+    // Close Checkout on page navigation:
+    window.addEventListener('popstate', function() {
+        handler.close();
+    });
+
+
+
+</script>
+
+</body>
+</html>
